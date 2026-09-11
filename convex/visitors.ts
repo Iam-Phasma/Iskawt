@@ -2,12 +2,26 @@ import { httpAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
-const ALLOWED_ORIGIN = "https://iam-phasma.github.io";
+const ALLOWED_ORIGINS = new Set([
+  "https://iam-phasma.github.io",
+  "https://iskawt.vercel.app",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+]);
 const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours per IP
+
+function isAllowedOrigin(origin: string) {
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+
+  // Allow Vercel preview deployments such as
+  // https://iskawt-git-branch-user.vercel.app and
+  // https://iskawt-abc123-user.vercel.app.
+  return /^https:\/\/iskawt(?:-[\w-]+)?\.vercel\.app$/i.test(origin);
+}
 
 export const trackVisit = httpAction(async (ctx, request) => {
   const origin = request.headers.get("Origin") ?? "";
-  if (origin !== ALLOWED_ORIGIN) {
+  if (!isAllowedOrigin(origin)) {
     return new Response(null, { status: 403 });
   }
 
@@ -22,7 +36,7 @@ export const trackVisit = httpAction(async (ctx, request) => {
     status: count !== null ? 200 : 200,
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+      "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "POST",
     },
   });

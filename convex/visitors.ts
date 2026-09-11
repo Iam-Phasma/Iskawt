@@ -13,11 +13,33 @@ const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours per IP
 function isAllowedOrigin(origin: string) {
   if (ALLOWED_ORIGINS.has(origin)) return true;
 
-  // Allow Vercel preview deployments such as
-  // https://iskawt-git-branch-user.vercel.app and
-  // https://iskawt-abc123-user.vercel.app.
-  return /^https:\/\/iskawt(?:-[\w-]+)?\.vercel\.app$/i.test(origin);
+  // Allow Vercel domains (production and preview), plus localhost ports.
+  if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return true;
+  if (/^https?:\/\/localhost(?::\d+)?$/i.test(origin)) return true;
+  if (/^https?:\/\/127\.0\.0\.1(?::\d+)?$/i.test(origin)) return true;
+
+  return false;
 }
+
+function buildCorsHeaders(origin: string) {
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    Vary: "Origin",
+  };
+}
+
+export const trackVisitOptions = httpAction(async (_ctx, request) => {
+  const origin = request.headers.get("Origin") ?? "";
+  if (!isAllowedOrigin(origin)) {
+    return new Response(null, { status: 403 });
+  }
+  return new Response(null, {
+    status: 204,
+    headers: buildCorsHeaders(origin),
+  });
+});
 
 export const trackVisit = httpAction(async (ctx, request) => {
   const origin = request.headers.get("Origin") ?? "";
@@ -36,8 +58,7 @@ export const trackVisit = httpAction(async (ctx, request) => {
     status: count !== null ? 200 : 200,
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": origin,
-      "Access-Control-Allow-Methods": "POST",
+      ...buildCorsHeaders(origin),
     },
   });
 });

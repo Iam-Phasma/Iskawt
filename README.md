@@ -2,8 +2,7 @@
 
 An interactive Philippine province map built for fun, free and open source.
 
-Vercel: https://iskawt.vercel.app/ \
-Pages: https://iam-phasma.github.io/Iskawt/
+Explore and have Fun: **[Iskawt](https://iskawt.vercel.app/)** 
 
 ## Features
 
